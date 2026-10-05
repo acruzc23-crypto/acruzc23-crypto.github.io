@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alfredo Cruz | Junior Developer</title>
+  <meta name="description" content="Portafolio de Alfredo Cruz, estudiante de Ingeniería en Software y Junior Developer (Python, JavaScript, HTML/CSS).">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav__inner">
+      <a href="#inicio" class="nav__logo">AC<span>.</span></a>
+      <button class="nav__toggle" id="navToggle" aria-label="Abrir menú">☰</button>
+      <nav class="nav__links" id="navLinks">
+        <a href="#sobre-mi">Sobre mí</a>
+        <a href="#habilidades">Habilidades</a>
+        <a href="#proyectos">Proyectos</a>
+        <a href="#contacto">Contacto</a>
+        <button class="theme-btn" id="themeBtn" aria-label="Cambiar tema">🌙</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="inicio">
+      <div class="container">
+        <p class="hero__hello">Hola, soy</p>
+        <h1 class="hero__name">Alfredo Cruz</h1>
+        <h2 class="hero__role">Junior Developer · <span id="typed">Python</span></h2>
+        <p class="hero__text">
+          Estudiante de Ingeniería en Software en la Universidad Estatal de Milagro (UNEMI), Ecuador.
+          Me gusta construir aplicaciones web y APIs útiles, aprender rápido y trabajar en equipo de forma remota.
+        </p>
+        <div class="hero__actions">
+          <a href="#proyectos" class="btn btn--primary">Ver proyectos</a>
+          <a href="#contacto" class="btn btn--ghost">Contactarme</a>
+        </div>
+        <p class="hero__status">🟢 Disponible para trabajo remoto · GMT-5</p>
+      </div>
+    </section>
+
+    <!-- SOBRE MÍ -->
+    <section class="section" id="sobre-mi">
+      <div class="container">
+        <h2 class="section__title">Sobre mí</h2>
+        <div class="about">
+          <p>
+            Estoy cursando Ingeniería en Software en la UNEMI. Durante la carrera he desarrollado
+            proyectos con JavaScript, HTML/CSS y Python, y he trabajado en análisis de requerimientos
+            con UML y diagramas de flujo de datos.
+          </p>
+          <p>
+            Busco mi primera oportunidad como <strong>Junior Developer</strong> o
+            <strong>practicante de desarrollo de software</strong> en modalidad 100% remota,
+            donde pueda aportar, seguir aprendiendo y crecer profesionalmente.
+          </p>
+          <ul class="about__facts">
+            <li><span>📍</span> Milagro, Ecuador</li>
+            <li><span>🎓</span> Ingeniería en Software — UNEMI</li>
+            <li><span>💼</span> Pasantía: Auxiliar de Registro y Gestión de Datos (UNEMI)</li>
+            <li><span>🌐</span> Español nativo · Inglés en aprendizaje</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- HABILIDADES -->
+    <section class="section section--alt" id="habilidades">
+      <div class="container">
+        <h2 class="section__title">Habilidades</h2>
+        <div class="skills">
+          <div class="skill-card">
+            <h3>Lenguajes</h3>
+            <ul class="tags">
+              <li>Python</li><li>JavaScript</li><li>HTML5</li><li>CSS3</li><li>SQL</li>
+            </ul>
+          </div>
+          <div class="skill-card">
+            <h3>Backend y datos</h3>
+            <ul class="tags">
+              <li>FastAPI</li><li>SQLite</li><li>APIs REST</li><li>pytest</li>
+            </ul>
+          </div>
+          <div class="skill-card">
+            <h3>Herramientas</h3>
+            <ul class="tags">
+              <li>Git</li><li>GitHub</li><li>VS Code</li><li>GitHub Pages</li>
+            </ul>
+          </div>
+          <div class="skill-card">
+            <h3>Análisis</h3>
+            <ul class="tags">
+              <li>UML</li><li>DFD</li><li>Ingeniería de requerimientos</li><li>Estructuras de datos</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROYECTOS -->
+    <section class="section" id="proyectos">
+      <div class="container">
+        <h2 class="section__title">Proyectos</h2>
+        <div class="filters" id="filters">
+          <button class="filter active" data-filter="all">Todos</button>
+          <button class="filter" data-filter="python">Python</button>
+          <button class="filter" data-filter="javascript">JavaScript</button>
+        </div>
+        <div class="projects" id="projects"></div>
+      </div>
+    </section>
+
+    <!-- CONTACTO -->
+    <section class="section section--alt" id="contacto">
+      <div class="container contact">
+        <h2 class="section__title">Contacto</h2>
+        <p>¿Tienes una vacante o un proyecto? Escríbeme, respondo rápido.</p>
+        <div class="contact__links">
+          <a class="btn btn--primary" href="mailto:alfredjosu43@gmail.com">✉️ alfredjosu43@gmail.com</a>
+          <a class="btn btn--ghost" href="https://www.linkedin.com/in/alfredo-cruz-dev" target="_blank" rel="noopener">LinkedIn</a>
+          <a class="btn btn--ghost" href="https://github.com/acruzc23-crypto" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>© <span id="year"></span> Alfredo Cruz · Desarrollado con asistencia de IA (Claude)</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
