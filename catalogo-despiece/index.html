@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Prototipo de catálogo interactivo de despiece de repuestos de moto.">
+<title>Catálogo de Despiece Moto</title>
+<style>
+/* Layout: estilo "microficha" de concesionario — barra superior, selectores de modelo, grupos a la izquierda, dibujo de líneas y tabla de partes debajo */
+:root{
+  --bg:#ffffff; --bar:#2b2b2b; --barfg:#f2f2f2; --ink:#1e1e1e; --muted:#666; --line:#c9c9c9; --rowalt:#f6f6f6;
+  --link:#1b4e9b; --hl:#fff2b3; --hlline:#c98a00; --red:#b42318; --ok:#2e6b30;
+  --ui:Arial,"Helvetica Neue",Helvetica,sans-serif; --num:"Courier New",Courier,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:13px;line-height:1.4}
+a{color:var(--link)}
+.bar{background:var(--bar);color:var(--barfg)}
+.bar-in,.sel-in,.main{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar-in{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding-block:8px}
+.shop{font-weight:bold;font-size:15px;letter-spacing:.02em}
+.shop small{font-weight:normal;color:#bbb;font-size:12px;margin-left:6px}
+.bar form{display:flex;gap:0;flex:1 1 240px;max-width:360px}
+.bar input{flex:1;min-width:0;border:1px solid #555;border-right:0;padding:5px 7px;font:inherit;background:#fff;color:#111}
+.bar button{border:1px solid #555;background:#e6e6e6;color:#111;padding:5px 10px;font:inherit;cursor:pointer}
+.cartlink{color:var(--barfg);text-decoration:none;font-size:12px}
+.cartlink b{background:var(--red);color:#fff;padding:0 5px;border-radius:2px;margin-left:3px}
+.selrow{background:#ececec;border-bottom:1px solid var(--line)}
+.sel-in{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding-block:7px;font-size:12px}
+.sel-in label{display:flex;gap:5px;align-items:center}
+.sel-in select{font:inherit;padding:2px 4px;border:1px solid #999;background:#fff;color:#111}
+.crumb{color:var(--muted);margin-left:auto}
+.main{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding-block:14px 30px}
+.side h3,.box h3{font-size:12px;margin:0 0 6px;padding:4px 6px;background:#e2e2e2;border:1px solid var(--line);text-transform:uppercase}
+.side ul{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-top:0}
+.side li button{display:block;width:100%;text-align:left;border:0;border-top:1px solid #e4e4e4;background:#fff;padding:6px 7px;font:inherit;color:var(--link);cursor:pointer}
+.side li:first-child button{border-top:0}
+.side li button:hover{text-decoration:underline}
+.side li button.on{background:#dfe8f5;color:var(--ink);font-weight:bold}
+.side li button span{color:var(--muted);font-weight:normal;font-family:var(--num);font-size:11px}
+.content{min-width:0;display:grid;gap:12px;align-content:start}
+.fig-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:3px}
+.fig-head h1{font-size:16px;margin:0;text-transform:uppercase}
+.fig-head span{font-family:var(--num);font-size:12px;color:var(--muted)}
+.fig{border:1px solid var(--line);overflow-x:auto;background:#fff}
+.fig svg{display:block;width:100%;min-width:480px;height:auto}
+.fig-note{font-size:11px;color:var(--muted);margin-top:-6px}
+/* dibujo de líneas */
+.ln{fill:#fff;stroke:#111;stroke-width:1.2}
+.ln2{fill:none;stroke:#111;stroke-width:.8}
+.axis{stroke:#888;stroke-width:.7;stroke-dasharray:14 3 2 3}
+.part{cursor:pointer}
+.part .lead{stroke:#111;stroke-width:.6}
+.part .no{font-family:var(--ui);font-size:12px;font-weight:bold;fill:#111;text-anchor:middle;dominant-baseline:central}
+.part .nobox{fill:#fff;stroke:none}
+.part:hover .ln{stroke:var(--link)}
+.part.on .ln{fill:var(--hl);stroke:var(--hlline);stroke-width:1.6}
+.part.on .nobox{fill:var(--hl);stroke:var(--hlline);stroke-width:1}
+.part.na{opacity:.28}
+.part:focus{outline:none}
+.part:focus-visible .nobox{stroke:var(--link);stroke-width:2}
+/* vista general */
+.bk{fill:none;stroke:#111;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.bkf{fill:#fff;stroke:#111;stroke-width:1.3;stroke-linejoin:round}
+.bkt{fill:none;stroke:#111;stroke-width:.7}
+.zone{cursor:pointer}
+.zone .lead{stroke:#111;stroke-width:.6}
+.zone rect{fill:#fff;stroke:#111;stroke-width:1}
+.zone text{font-family:var(--ui);font-size:12px;fill:#111;dominant-baseline:central}
+.zone text.n{font-weight:bold;text-anchor:middle}
+.zone:hover rect{fill:#eef3fb;stroke:var(--link)}
+.zone.on rect{fill:var(--hl);stroke:var(--hlline);stroke-width:1.4}
+.zone.on text{font-weight:bold}
+.zone:focus{outline:none}
+.zone:focus-visible rect{stroke:var(--link);stroke-width:2}
+.hot{fill:var(--hl);stroke:var(--hlline);stroke-width:1.4;opacity:0;transition:opacity .15s}
+.hot.on{opacity:.9}
+/* tabla */
+.tablewrap{overflow-x:auto;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#e2e2e2;text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:11px}
+td{padding:5px 6px;border-bottom:1px solid #e4e4e4;vertical-align:top}
+tbody tr:nth-child(even){background:var(--rowalt)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#eef3fb}
+tbody tr.on{background:var(--hl)!important}
+tbody tr.na td{color:#999}
+td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pn{font-family:var(--num);white-space:nowrap}
+.note{display:block;font-size:11px;color:var(--red)}
+.note.grey{color:#888}
+.addbtn{font:inherit;font-size:11px;padding:2px 7px;border:1px solid #888;background:#f1f1f1;color:#111;cursor:pointer;white-space:nowrap}
+.addbtn:hover{background:#e0e0e0}
+.addbtn:focus-visible,.side li button:focus-visible,.bar button:focus-visible,.copy:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+.qtyin{width:42px;font:inherit;font-size:12px;padding:1px 3px;border:1px solid #999}
+.box{border:1px solid var(--line);border-top:0}
+.box h3{margin:0;border-left:0;border-right:0}
+.box-in{padding:8px 10px;display:grid;gap:4px;font-size:12px}
+.copy{font:inherit;font-size:11px;padding:0 6px;border:1px solid #999;background:#f6f6f6;color:#111;cursor:pointer;margin-left:6px}
+.stockok{color:var(--ok)} .stocklow{color:var(--red)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.two>section{border-top:1px solid var(--line)}
+.cart td{vertical-align:middle}
+.cart-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;border-top:1px solid var(--line)}
+.cart-foot b{font-size:14px;font-variant-numeric:tabular-nums}
+.send{font:inherit;padding:4px 12px;border:1px solid #7a1a12;background:var(--red);color:#fff;cursor:pointer}
+.send:disabled{opacity:.5;cursor:default}
+.empty{padding:8px 10px;color:var(--muted);font-size:12px}
+.x{border:0;background:none;color:var(--red);cursor:pointer;font:inherit}
+.res{border:1px solid var(--line);margin-bottom:0}
+.res ul{margin:0;padding:4px 0;list-style:none}
+.res li button{display:block;width:100%;text-align:left;border:0;background:none;padding:4px 10px;font:inherit;color:var(--link);cursor:pointer}
+.res li button:hover{background:#eef3fb}
+.tip{position:fixed;z-index:20;pointer-events:none;background:#ffffe1;color:#111;border:1px solid #777;font-size:11px;padding:3px 6px;max-width:240px;box-shadow:1px 1px 2px rgba(0,0,0,.25)}
+.foot{font-size:11px;color:#888;border-top:1px solid var(--line);padding-top:6px}
+@media (max-width:760px){.main{grid-template-columns:minmax(0,1fr)}.side ul{display:flex;flex-wrap:wrap}.side li{flex:1 1 50%}.side li button{border-top:1px solid #e4e4e4!important;border-right:1px solid #e4e4e4}.two{grid-template-columns:minmax(0,1fr)}.crumb{margin-left:0;width:100%}}
+</style>
+</head>
+<body>
+
+
+<div class="bar"><div class="bar-in">
+  <div class="shop">REPUESTOS MOTO <small>Catálogo de partes</small></div>
+  <form id="sform" role="search"><input id="q" type="search" placeholder="Nº de parte o descripción" aria-label="Buscar repuesto" autocomplete="off"><button>Buscar</button></form>
+  <a href="#pedido" class="cartlink">Pedido <b id="cartN">0</b></a>
+</div></div>
+<div class="selrow"><div class="sel-in">
+  <label>Marca <select id="brand"><option>Genérica</option></select></label>
+  <label>Modelo <select id="mdl"><option>Urbana 150</option></select></label>
+  <label>Año <select id="model"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2021">2021</option><option value="2022">2022</option><option value="2023">2023</option></select></label>
+  <span class="crumb" id="crumb"></span>
+</div></div>
+
+<div class="main">
+  <aside class="side">
+    <h3>Grupos</h3>
+    <ul id="groups"></ul>
+  </aside>
+
+  <div class="content">
+    <div class="fig-head"><h1>Vista general</h1><span>Urbana 150 · Fig. 00</span></div>
+    <div class="fig"><svg id="bike" viewBox="0 0 640 300" role="group" aria-label="Vista general de la moto, grupos numerados"></svg></div>
+    <div class="fig-note">Haga clic en un número de la moto para abrir ese grupo.</div>
+
+    <section class="res" id="resBox" hidden>
+      <h3 style="margin:0;font-size:12px;padding:4px 6px;background:#e2e2e2;border-bottom:1px solid var(--line)" id="resLabel"></h3>
+      <ul id="results"></ul>
+    </section>
+
+    <div class="fig-head"><h1 id="gTitle"></h1><span id="gSheet"></span></div>
+    <div class="fig"><svg id="exploded" viewBox="0 0 680 360" role="group"></svg></div>
+    <div class="fig-note">Haga clic en un número del dibujo o en una fila de la tabla.</div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Ref</th><th>Nº de parte</th><th>Descripción</th><th>Cant.</th><th class="r">Precio</th><th>Pedir</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="two">
+      <section class="box"><h3>Detalle de la pieza</h3><div class="box-in" id="detail"></div></section>
+      <section class="box" id="pedido"><h3>Pedido</h3><div id="cart"></div>
+        <div class="cart-foot"><span>Total: <b id="total">$0.00</b></span><button class="send" id="send" disabled>Enviar pedido</button></div>
+        <div class="empty" id="msg" hidden></div>
+      </section>
+    </div>
+
+    <div class="foot">Datos de ejemplo para la prueba piloto. Precios en USD, IVA no incluido.</div>
+  </div>
+</div>
+
+<script>
+const GROUPS = [
+  {id:"freno", name:"Freno delantero", sheet:"F-02",
+   parts:[
+    {code:"45105-DM1-A01",name:"Pastillas de freno (juego)",qty:1,price:9.50,stock:24,shape:"pad",m:"new",replaces:"45105-DM1-000",spec:"Semimetálicas. Espesor nuevo 7,5 mm; cambiar a 2 mm."},
+    {code:"45120-DM1-000",name:"Caliper de freno",qty:1,price:38.00,stock:5,shape:"block",m:"new",spec:"2 pistones Ø25 mm. Incluye sangrador."},
+    {code:"45251-DM1-000",name:"Disco de freno Ø240",qty:1,price:27.90,stock:9,shape:"disc",m:"new",spec:"Espesor mínimo de servicio 3,5 mm."},
+    {code:"90105-DM1-000",name:"Perno de disco M8x1,25",qty:5,price:0.85,stock:120,shape:"bolt",m:"new",spec:"Torque 42 N·m. Traba roscas medio."},
+    {code:"45126-DM1-000",name:"Manguera de freno",qty:1,price:12.40,stock:3,shape:"hose",m:"new",spec:"820 mm. Conectores banjo M10."},
+    {code:"45510-DM1-000",name:"Bomba de freno c/depósito",qty:1,price:31.00,stock:6,shape:"cyl",m:"new",spec:"Pistón Ø11 mm. Líquido DOT 4."},
+    {code:"45110-DR1-000",name:"Zapatas tambor delantero",qty:1,price:6.90,stock:15,shape:"pad",m:"old",spec:"Tambor Ø130 mm. Forro mínimo 2 mm."},
+    {code:"45450-DR1-000",name:"Cable de freno delantero",qty:1,price:4.80,stock:10,shape:"hose",m:"old",spec:"1.040 mm. Juego en palanca 10–20 mm."}
+   ]},
+  {id:"motor", name:"Cilindro / pistón", sheet:"E-04",
+   parts:[
+    {code:"12100-EN1-000",name:"Cilindro",qty:1,price:46.00,stock:4,shape:"cyl",spec:"Ø57,30 mm estándar. Límite 57,40 mm."},
+    {code:"13101-EN1-000",name:"Pistón STD",qty:1,price:18.50,stock:11,shape:"piston",spec:"Sobremedidas 0,25 / 0,50 bajo pedido."},
+    {code:"13011-EN1-000",name:"Juego de anillos STD",qty:1,price:9.80,stock:18,shape:"washer",spec:"1º, 2º y rascador."},
+    {code:"13111-EN1-000",name:"Bulón de pistón",qty:1,price:4.20,stock:15,shape:"pin",spec:"Ø15 x 46 mm."},
+    {code:"12191-EN1-000",name:"Empaque base de cilindro",qty:1,price:1.90,stock:40,shape:"gasket",spec:"0,5 mm."},
+    {code:"94301-EN1-000",name:"Pasador guía 10x14",qty:2,price:0.60,stock:60,shape:"pin",spec:"Ø10 x 14 mm."}
+   ]},
+  {id:"trans", name:"Cadena / piñones", sheet:"T-01",
+   parts:[
+    {code:"23801-TR1-000",name:"Piñón 15T",qty:1,price:6.50,stock:14,shape:"gear",spec:"Paso 428."},
+    {code:"40530-TR1-000",name:"Cadena 428H x 118L",qty:1,price:22.00,stock:8,shape:"chain",spec:"Con eslabón de clip."},
+    {code:"41201-TR1-000",name:"Corona 43T",qty:1,price:17.80,stock:7,shape:"gear",spec:"Paso 428. Relación 2,87."},
+    {code:"90111-TR1-000",name:"Tuerca corona M10",qty:4,price:0.70,stock:90,shape:"nut",spec:"Autoblocante. 64 N·m."},
+    {code:"40543-TR1-000",name:"Tensor de cadena (par)",qty:1,price:5.40,stock:2,shape:"block",spec:"Juego libre 25–35 mm."}
+   ]},
+  {id:"susp", name:"Suspensión trasera", sheet:"S-03",
+   parts:[
+    {code:"52400-SU1-000",name:"Amortiguador trasero",qty:1,price:54.00,stock:3,shape:"shock",spec:"Precarga 5 posiciones. 300 mm."},
+    {code:"52401-SU1-000",name:"Resorte amortiguador",qty:1,price:19.50,stock:5,shape:"spring",spec:"85 N/mm."},
+    {code:"90121-SU1-000",name:"Perno anclaje M10",qty:2,price:1.40,stock:70,shape:"bolt",spec:"44 N·m."},
+    {code:"52141-SU1-000",name:"Buje de basculante",qty:2,price:3.20,stock:22,shape:"washer",spec:"Bronce sinterizado."},
+    {code:"52100-SU1-000",name:"Basculante",qty:1,price:72.00,stock:1,shape:"arm",spec:"Tubo rectangular de acero."}
+   ]},
+  {id:"elec", name:"Eléctrico", sheet:"L-01",
+   parts:[
+    {code:"31500-EL1-A02",name:"Batería 12V 5Ah",qty:1,price:24.00,stock:10,shape:"block",replaces:"31500-EL1-000",spec:"Libre de mantenimiento."},
+    {code:"31600-EL1-000",name:"Regulador rectificador",qty:1,price:15.60,stock:6,shape:"block",spec:"14,0–14,8 V a 5.000 rpm."},
+    {code:"30410-EL1-000",name:"CDI",qty:1,price:21.00,stock:4,shape:"block",spec:"Avance fijo."},
+    {code:"30500-EL1-000",name:"Bobina de encendido",qty:1,price:13.90,stock:8,shape:"cyl",spec:"Primario 0,2–0,4 Ω."},
+    {code:"31916-EL1-000",name:"Bujía",qty:1,price:3.10,stock:50,shape:"plug",spec:"Calibre 0,6–0,7 mm."}
+   ]},
+  {id:"rueda", name:"Rueda trasera", sheet:"W-02",
+   parts:[
+    {code:"42701-WH1-000",name:"Aro aleación 17x2,15",qty:1,price:68.00,stock:2,shape:"disc",spec:"Para llanta 100/80-17."},
+    {code:"42711-WH1-000",name:"Llanta 100/80-17",qty:1,price:41.00,stock:6,shape:"tire",spec:"33 psi solo piloto."},
+    {code:"96140-WH1-000",name:"Rodamiento 6302-2RS",qty:2,price:2.80,stock:35,shape:"washer",spec:"Sellado."},
+    {code:"42301-WH1-000",name:"Eje trasero M14",qty:1,price:8.90,stock:9,shape:"pin",spec:"Tuerca 88 N·m."},
+    {code:"42620-WH1-000",name:"Zapatas freno trasero",qty:1,price:7.40,stock:12,shape:"pad",spec:"Tambor Ø130 mm."}
+   ]}
+];
+GROUPS.forEach(g=>g.parts.forEach((p,i)=>{p.ref=i+1;p.gid=g.id}));
+
+const state={g:GROUPS[0],sel:1,year:2024,order:new Map()};
+try{JSON.parse(localStorage.getItem("pedido")||"[]").forEach(([k,v])=>state.order.set(k,v))}catch(e){}
+const $=id=>document.getElementById(id);
+const fmt=n=>"$"+n.toFixed(2);
+const fits=p=>!p.m||(p.m==="new"?state.year>=2024:state.year<2024);
+const firstFit=g=>(g.parts.find(fits)||g.parts[0]).ref;
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e};
+const findPart=c=>{for(const g of GROUPS)for(const p of g.parts)if(p.code===c)return p};
+
+const tip=document.createElement("div");tip.className="tip";tip.hidden=true;document.body.appendChild(tip);
+const showTip=(e,p)=>{tip.textContent=p.code+" — "+p.name+(fits(p)?"  "+fmt(p.price):"  (no aplica)");tip.hidden=false;moveTip(e)};
+const moveTip=e=>{tip.style.left=Math.min(e.clientX+12,innerWidth-250)+"px";tip.style.top=(e.clientY+14)+"px"};
+
+/* piezas en dibujo de línea */
+function shape(t,g){
+  const A="ln",B="ln2";
+  switch(t){
+    case "disc": el("ellipse",{rx:20,ry:50,class:A},g);el("ellipse",{rx:8,ry:19,class:A},g);for(let i=0;i<6;i++){const a=i/6*Math.PI*2;el("ellipse",{cx:Math.cos(a)*6,cy:Math.sin(a)*32,rx:2,ry:4.5,class:B},g)}el("ellipse",{rx:17,ry:44,class:B},g);break;
+    case "pad": el("path",{d:"M-8 -26 Q-2 -30 6 -24 L6 24 Q-2 30 -8 26 Z",class:A},g);el("path",{d:"M-3 -22 L-3 22",class:B},g);el("path",{d:"M10 -24 Q16 -28 22 -22 L22 22 Q16 28 10 24 Z",class:A},g);break;
+    case "block": el("path",{d:"M-22 -16 L2 -28 L26 -16 L26 16 L2 28 L-22 16 Z",class:A},g);el("path",{d:"M-22 -16 L2 -4 L26 -16 M2 -4 L2 28",class:B},g);el("circle",{cx:-10,cy:6,r:3,class:B},g);el("circle",{cx:14,cy:6,r:3,class:B},g);break;
+    case "bolt": el("path",{d:"M-7 -30 L7 -30 L7 -23 L-7 -23 Z",class:A},g);el("rect",{x:-3.5,y:-23,width:7,height:50,class:A},g);for(let y=-2;y<26;y+=3.5)el("line",{x1:-3.5,y1:y,x2:3.5,y2:y+1.5,class:B},g);break;
+    case "nut": el("path",{d:"M-11 -6 L0 -13 L11 -6 L11 6 L0 13 L-11 6 Z",class:A},g);el("circle",{r:4.5,class:A},g);break;
+    case "hose": el("path",{d:"M-34 22 C-12 -44 12 44 34 -22",fill:"none",stroke:"#111","stroke-width":6.5,class:"hz"},g);el("path",{d:"M-34 22 C-12 -44 12 44 34 -22",fill:"none",stroke:"#fff","stroke-width":4.2,class:"hz2"},g);el("circle",{cx:-34,cy:22,r:5,class:A},g);el("circle",{cx:34,cy:-22,r:5,class:A},g);break;
+    case "cyl": el("path",{d:"M-19 -22 L19 -22 L19 24 L-19 24 Z",class:A},g);el("ellipse",{cy:-22,rx:19,ry:6,class:A},g);el("ellipse",{cy:-22,rx:12,ry:3.5,class:B},g);for(let y=-12;y<22;y+=5)el("line",{x1:-19,y1:y,x2:19,y2:y,class:B},g);break;
+    case "piston": el("path",{d:"M-17 -14 L17 -14 L17 22 L-17 22 Z",class:A},g);el("ellipse",{cy:-14,rx:17,ry:5.5,class:A},g);[-8,-4,0].forEach(y=>el("line",{x1:-17,y1:y,x2:17,y2:y,class:B},g));el("circle",{cy:11,r:4,class:A},g);break;
+    case "washer": el("ellipse",{rx:7,ry:21,class:A},g);el("ellipse",{rx:2.6,ry:9,class:A},g);break;
+    case "gasket": el("path",{d:"M-5 -34 L5 -30 L5 30 L-5 34 Z",class:A},g);el("ellipse",{rx:3,ry:17,class:A},g);el("circle",{cy:-24,r:1.6,class:B},g);el("circle",{cy:24,r:1.6,class:B},g);break;
+    case "pin": el("rect",{x:-3.5,y:-17,width:7,height:34,rx:2.5,class:A},g);el("ellipse",{cy:-17,rx:3.5,ry:1.4,class:B},g);break;
+    case "gear": {let d="";const n=18;for(let i=0;i<n*2;i++){const a=i/(n*2)*Math.PI*2,r=i%2?25:31;d+=(i?"L":"M")+(Math.cos(a)*r*.42).toFixed(1)+" "+(Math.sin(a)*r).toFixed(1)}el("path",{d:d+"Z",class:A},g);el("ellipse",{rx:9,ry:21,class:B},g);el("ellipse",{rx:3.5,ry:8,class:A},g);break;}
+    case "chain": el("rect",{x:-36,y:-13,width:72,height:26,rx:13,fill:"none",stroke:"#111","stroke-width":4.5,"stroke-dasharray":"5 2.5",class:"hz"},g);el("rect",{x:-36,y:-13,width:72,height:26,rx:13,class:B},g);break;
+    case "shock": el("rect",{x:-5,y:-40,width:10,height:80,class:A},g);el("rect",{x:-3,y:-40,width:6,height:36,class:B},g);el("circle",{cy:-42,r:6,class:A},g);el("circle",{cy:42,r:6,class:A},g);break;
+    case "spring": {let d="M0 -36";for(let i=0;i<9;i++)d+=` L${i%2?-11:11} ${-30+i*7}`;d+=" L0 36";el("path",{d,fill:"none",stroke:"#111","stroke-width":1.6,class:"hz"},g);break;}
+    case "arm": el("path",{d:"M-42 -8 L36 -18 L40 -6 L-38 6 Z",class:A},g);el("circle",{cx:-40,cy:-1,r:6,class:A},g);el("circle",{cx:38,cy:-12,r:5,class:A},g);el("line",{x1:-30,y1:-2,x2:30,y2:-10,class:B},g);break;
+    case "plug": el("rect",{x:-4,y:-30,width:8,height:15,class:A},g);el("path",{d:"M-8 -15 L8 -15 L8 1 L-8 1 Z",class:A},g);el("rect",{x:-4,y:1,width:8,height:17,class:A},g);for(let y=4;y<18;y+=3)el("line",{x1:-4,y1:y,x2:4,y2:y+1,class:B},g);el("path",{d:"M0 18 L0 25 L4 25",class:B},g);break;
+    case "tire": el("ellipse",{rx:28,ry:58,class:A},g);el("ellipse",{rx:17,ry:40,class:A},g);for(let i=-48;i<=48;i+=8)el("line",{x1:-27,y1:i,x2:-21,y2:i+3,class:B},g);break;
+    default: el("circle",{r:15,class:A},g);
+  }
+}
+// posiciones "a mano": no todas sobre una línea recta perfecta
+const JITTER=[0,-14,10,-6,16,-12,6,-4];
+function drawExploded(){
+  const s=$("exploded"),g=state.g,n=g.parts.length;s.innerHTML="";
+  s.setAttribute("aria-label","Despiece "+g.name);
+  const x0=70,x1=600,y0=220,y1=150;
+  el("line",{x1:x0-45,y1:y0+14,x2:x1+50,y2:y1-14,class:"axis"},s);
+  g.parts.forEach((p,i)=>{
+    const t=n===1?.5:i/(n-1),x=x0+(x1-x0)*t,y=y0+(y1-y0)*t+JITTER[i%8];
+    const up=i%2===0,ty=up?30+(i%3)*8:332-(i%3)*8,tx=x+(up?-18:16);
+    const gr=el("g",{class:"part"+(p.ref===state.sel?" on":"")+(fits(p)?"":" na"),tabindex:0,role:"button","aria-label":p.ref+" "+p.name},s);
+    el("line",{x1:tx,y1:ty+(up?8:-8),x2:x,y2:y+(up?-30:30),class:"lead"},gr);
+    const b=el("g",{transform:`translate(${x.toFixed(1)} ${y.toFixed(1)})`},gr);shape(p.shape,b);
+    el("rect",{x:tx-9,y:ty-8,width:18,height:16,class:"nobox"},gr);
+    const tt=el("text",{x:tx,y:ty,class:"no"},gr);tt.textContent=p.ref;
+    gr.addEventListener("click",()=>select(p.ref));
+    gr.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(p.ref)}});
+    gr.addEventListener("mouseenter",e=>showTip(e,p));gr.addEventListener("mousemove",moveTip);gr.addEventListener("mouseleave",()=>tip.hidden=true);
+  });
+}
+/* moto en dibujo de líneas */
+const ZONES={freno:{hot:[150,196,26],tag:[40,40],to:[150,180]},motor:{hot:[282,178,30],tag:[170,286],to:[268,196]},trans:{hot:[318,204,14],tag:[340,286],to:[322,214]},
+  susp:{hot:[392,158,18],tag:[430,40],to:[394,140]},elec:{hot:[352,118,18],tag:[250,40],to:[342,110]},rueda:{hot:[488,196,64],tag:[500,286],to:[500,256]}};
+function wheel(s,cx,cy){
+  el("circle",{cx,cy,r:62,class:"bkf"},s);el("circle",{cx,cy,r:56,class:"bk"},s);
+  for(let i=0;i<28;i++){const a=i/28*Math.PI*2;el("line",{x1:cx+Math.cos(a)*57,y1:cy+Math.sin(a)*57,x2:cx+Math.cos(a+.08)*61,y2:cy+Math.sin(a+.08)*61,class:"bkt"},s)}
+  el("circle",{cx,cy,r:42,class:"bkf"},s);el("circle",{cx,cy,r:38,class:"bkt"},s);
+  for(let i=0;i<5;i++){const a=i/5*Math.PI*2-Math.PI/2,b=a+.22;el("path",{d:`M${cx+Math.cos(a)*9} ${cy+Math.sin(a)*9} L${cx+Math.cos(a)*38} ${cy+Math.sin(a)*38} L${cx+Math.cos(b)*38} ${cy+Math.sin(b)*38} L${cx+Math.cos(b)*9} ${cy+Math.sin(b)*9}`,class:"bk"},s)}
+  el("circle",{cx,cy,r:9,class:"bkf"},s);el("circle",{cx,cy,r:3,class:"bkf"},s);
+}
+function drawBike(){
+  const s=$("bike");s.innerHTML="";
+  el("line",{x1:60,y1:259,x2:590,y2:259,class:"bkt"},s);
+  // resaltados de zona (debajo del dibujo)
+  const hots={};GROUPS.forEach(g=>{const z=ZONES[g.id];hots[g.id]=el("circle",{cx:z.hot[0],cy:z.hot[1],r:z.hot[2],class:"hot"+(g===state.g?" on":"")},s)});
+  // guardabarros trasero y escape
+  el("path",{d:"M432 128 Q490 112 548 150",class:"bk"},s);
+  el("path",{d:"M300 214 L362 226 Q430 236 470 222 L474 210 Q430 216 366 208 L304 200",class:"bkf"},s);
+  el("path",{d:"M440 222 L478 218",class:"bkt"},s);
+  wheel(s,150,196);wheel(s,488,196);
+  // disco y caliper delanteros
+  el("circle",{cx:150,cy:196,r:26,class:"bk"},s);for(let i=0;i<8;i++){const a=i/8*Math.PI*2;el("circle",{cx:150+Math.cos(a)*20,cy:196+Math.sin(a)*20,r:1.8,class:"bkt"},s)}
+  el("path",{d:"M166 168 L180 176 L174 190 L160 182 Z",class:"bkf"},s);
+  // horquilla
+  el("path",{d:"M146 196 L196 78 M156 198 L206 80",class:"bk"},s);el("path",{d:"M164 160 L174 136",class:"bkt"},s);
+  el("path",{d:"M104 150 Q150 108 196 140",class:"bk"},s);
+  // manubrio y faro
+  el("path",{d:"M196 78 L206 80 L210 62 L198 60 Z",class:"bkf"},s);
+  el("path",{d:"M186 54 L232 46 M226 47 L244 52",class:"bk"},s);el("rect",{x:178,y:50,width:12,height:6,class:"bkf",transform:"rotate(-10 184 53)"},s);
+  el("path",{d:"M186 82 Q172 92 178 108 L196 104 Z",class:"bkf"},s);el("path",{d:"M181 96 L192 94",class:"bkt"},s);
+  // chasis
+  el("path",{d:"M206 84 L244 96 L360 104 L410 140 L488 196",class:"bk"},s);
+  el("path",{d:"M226 92 L250 196 L312 206",class:"bk"},s);el("path",{d:"M360 104 L330 200",class:"bk"},s);
+  // basculante y amortiguador
+  el("path",{d:"M320 206 L488 200 L488 192 L322 196 Z",class:"bkf"},s);
+  el("path",{d:"M380 130 L400 186",class:"bk"},s);let sp="M383 138";for(let i=0;i<9;i++){const t=i/8,x=383+t*14,y=138+t*40;sp+=` L${x+(i%2?-5:5)} ${y}`}el("path",{d:sp,class:"bkt"},s);
+  el("circle",{cx:380,cy:130,r:3.5,class:"bkf"},s);el("circle",{cx:400,cy:186,r:3.5,class:"bkf"},s);
+  // cadena y piñones
+  el("circle",{cx:318,cy:204,r:9,class:"bkf"},s);el("circle",{cx:488,cy:196,r:22,class:"bk"},s);
+  el("path",{d:"M318 195 L488 174 M318 213 L488 218",class:"bkt","stroke-dasharray":"3 2"},s);
+  // motor
+  el("path",{d:"M246 152 L316 148 L322 196 L306 214 L258 214 L244 198 Z",class:"bkf"},s);
+  el("path",{d:"M258 152 L248 118 L286 112 L294 150",class:"bkf"},s);
+  for(let y=120;y<150;y+=5)el("line",{x1:250+(y-118)*.3,y1:y,x2:290+(y-118)*.1,y2:y-2,class:"bkt"},s);
+  el("circle",{cx:276,cy:186,r:14,class:"bk"},s);el("circle",{cx:276,cy:186,r:9,class:"bkt"},s);
+  el("path",{d:"M290 120 Q302 98 340 102",class:"bk"},s);
+  // tanque, asiento, tapa lateral
+  el("path",{d:"M226 92 Q236 66 284 64 Q324 64 340 80 L344 102 L246 98 Z",class:"bkf"},s);
+  el("path",{d:"M258 70 Q290 62 322 72",class:"bkt"},s);el("ellipse",{cx:298,cy:68,rx:7,ry:2.5,class:"bkt"},s);
+  el("path",{d:"M340 84 L450 92 Q470 96 468 108 L344 106 Z",class:"bkf"},s);
+  el("path",{d:"M336 108 L392 110 L384 134 L340 128 Z",class:"bkf"},s);el("path",{d:"M346 116 L378 118",class:"bkt"},s);
+  el("path",{d:"M450 100 L470 104 L468 116 L452 114 Z",class:"bkf"},s);
+  // pedales
+  el("path",{d:"M300 220 L312 230 M296 230 L322 232",class:"bk"},s);
+  // números de grupo
+  GROUPS.forEach((g,i)=>{const z=ZONES[g.id],[tx,ty]=z.tag;
+    const a=el("g",{class:"zone"+(g===state.g?" on":""),tabindex:0,role:"button","aria-label":(i+1)+" "+g.name},s);
+    el("line",{x1:tx,y1:ty+(ty<150?9:-9),x2:z.to[0],y2:z.to[1],class:"lead"},a);
+    const w=g.name.length*7+32;const left=tx+w>630?tx-w+20:tx-10;
+    el("rect",{x:left,y:ty-9,width:w,height:18},a);
+    const n=el("text",{x:left+11,y:ty,class:"n"},a);n.textContent=i+1;
+    const t=el("text",{x:left+22,y:ty},a);t.textContent=g.name;
+    a.addEventListener("click",()=>pickGroup(g));
+    a.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pickGroup(g)}});
+    a.addEventListener("mouseenter",()=>hots[g.id].classList.add("on"));
+    a.addEventListener("mouseleave",()=>{if(g!==state.g)hots[g.id].classList.remove("on")});
+  });
+}
+function drawGroups(){
+  $("groups").innerHTML=GROUPS.map((g,i)=>`<li><button data-g="${g.id}" class="${g===state.g?"on":""}">${i+1}. ${g.name} <span>${g.sheet}</span></button></li>`).join("");
+  $("groups").querySelectorAll("button").forEach(b=>b.onclick=()=>pickGroup(GROUPS.find(g=>g.id===b.dataset.g)));
+}
+function drawTable(){
+  const g=state.g;
+  $("gTitle").textContent=g.name;
+  $("gSheet").textContent="Fig. "+g.sheet;
+  $("crumb").textContent="Genérica › Urbana 150 › "+state.year+" › "+g.name;
+  $("rows").innerHTML=g.parts.map(p=>{const ok=fits(p);return `<tr data-ref="${p.ref}" class="${p.ref===state.sel?"on":""}${ok?"":" na"}">
+    <td>${p.ref}</td><td class="pn">${p.code}</td>
+    <td>${p.name}${p.replaces?`<span class="note">Reemplaza a ${p.replaces}</span>`:""}${ok?"":`<span class="note grey">No aplica para ${state.year}</span>`}</td>
+    <td class="r">${p.qty}</td><td class="r">${fmt(p.price)}</td>
+    <td>${ok?`<button class="addbtn" data-c="${p.code}">Agregar</button>`:""}</td></tr>`}).join("");
+  $("rows").querySelectorAll("tr").forEach(tr=>tr.onclick=e=>{if(!e.target.closest(".addbtn"))select(+tr.dataset.ref)});
+  $("rows").querySelectorAll(".addbtn").forEach(b=>b.onclick=()=>add(b.dataset.c));
+  drawDetail();
+}
+function drawDetail(){
+  const p=state.g.parts.find(x=>x.ref===state.sel);if(!p)return;
+  const ok=fits(p),low=p.stock<=3;
+  $("detail").innerHTML=`<div><b class="pn" id="pcode">${p.code}</b><button class="copy" id="copyBtn">Copiar</button></div>
+   <div>${p.name}</div><div style="color:var(--muted)">${p.spec}</div>`+
+   (p.replaces?`<div class="note">El nº ${p.replaces} ya no se fabrica. Este es el reemplazo.</div>`:"")+
+   (ok?`<div class="${low?"stocklow":"stockok"}">Existencia: ${p.stock} u.${low?" (pocas)":""}</div>`:`<div class="note grey">No aplica para el año ${state.year}.</div>`);
+  $("copyBtn").onclick=async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText(p.code);b.textContent="Copiado"}catch(_){const r=document.createRange();r.selectNodeContents($("pcode"));getSelection().removeAllRanges();getSelection().addRange(r);b.textContent="Seleccionado"}setTimeout(()=>b.textContent="Copiar",1500)};
+}
+function select(ref){
+  state.sel=ref;
+  document.querySelectorAll("#exploded .part").forEach((e,i)=>e.classList.toggle("on",i+1===ref));
+  document.querySelectorAll("#rows tr").forEach(tr=>tr.classList.toggle("on",+tr.dataset.ref===ref));
+  drawDetail();
+}
+function pickGroup(g,ref){state.g=g;state.sel=ref||firstFit(g);drawBike();drawGroups();drawExploded();drawTable()}
+$("model").onchange=e=>{state.year=+e.target.value;const c=state.g.parts.find(x=>x.ref===state.sel);pickGroup(state.g,c&&fits(c)?state.sel:0)};
+
+/* pedido */
+const save=()=>{try{localStorage.setItem("pedido",JSON.stringify([...state.order]))}catch(e){}};
+function add(c){state.order.set(c,(state.order.get(c)||0)+findPart(c).qty);$("msg").hidden=true;save();drawCart()}
+function drawCart(){
+  let tot=0,cnt=0;const C=$("cart");
+  if(!state.order.size)C.innerHTML='<div class="empty">Sin piezas. Use "Agregar" en la tabla.</div>';
+  else{
+    C.innerHTML='<table class="cart"><tbody>'+[...state.order].map(([c,q])=>{const p=findPart(c);tot+=p.price*q;cnt+=q;
+      return `<tr><td class="pn">${c}<br><span style="font-family:var(--ui)">${p.name}</span></td><td><input class="qtyin" type="number" min="1" value="${q}" data-c="${c}" id="q-${c}" aria-label="Cantidad"></td><td class="r">${fmt(p.price*q)}</td><td><button class="x" data-x="${c}" aria-label="Quitar">quitar</button></td></tr>`}).join("")+'</tbody></table>';
+    C.querySelectorAll(".qtyin").forEach(i=>i.onchange=()=>{const v=Math.max(1,parseInt(i.value)||1);state.order.set(i.dataset.c,v);save();drawCart()});
+    C.querySelectorAll(".x").forEach(b=>b.onclick=()=>{state.order.delete(b.dataset.x);save();drawCart()});
+  }
+  $("total").textContent=fmt(tot);$("cartN").textContent=cnt;$("send").disabled=!state.order.size;
+}
+$("send").onclick=()=>{const m=$("msg");m.textContent="Pedido enviado al mostrador (demo): "+state.order.size+" líneas.";m.hidden=false};
+
+/* búsqueda */
+function search(){
+  const q=$("q").value.trim().toLowerCase(),box=$("resBox");
+  if(q.length<2){box.hidden=true;return}
+  const hits=[];GROUPS.forEach(g=>g.parts.forEach(p=>{if((p.name+" "+p.code+" "+(p.replaces||"")).toLowerCase().includes(q))hits.push([g,p])}));
+  box.hidden=false;
+  $("resLabel").textContent=hits.length?hits.length+" resultado(s) para \""+q+"\"":"Sin resultados para \""+q+"\"";
+  $("results").innerHTML=hits.map(([g,p])=>`<li><button data-g="${g.id}" data-r="${p.ref}">${p.code} — ${p.name} <span style="color:#888">(${g.name}, ref ${p.ref}${p.replaces&&p.replaces.toLowerCase().includes(q)?", reemplaza a "+p.replaces:""})</span></button></li>`).join("");
+  $("results").querySelectorAll("button").forEach(b=>b.onclick=()=>pickGroup(GROUPS.find(g=>g.id===b.dataset.g),+b.dataset.r));
+}
+$("q").addEventListener("input",search);
+$("sform").addEventListener("submit",e=>{e.preventDefault();search()});
+
+pickGroup(GROUPS[0]);drawCart();
+</script>
+
+</body>
+</html>
